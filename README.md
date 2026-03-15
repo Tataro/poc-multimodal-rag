@@ -43,6 +43,8 @@ Implemented now:
 - image embedding and description generation
 - video chunking with `ffmpeg`
 - Pinecone upsert and query helpers
+- balanced all-mode retrieval across text, image, and video
+- lightweight lexical reranking to reduce generic document dominance in all-mode results
 
 Not implemented yet:
 
@@ -246,10 +248,27 @@ The query path is:
 1. User enters a question in the chat UI.
 2. The backend embeds that question with Gemini Embedding 2 using retrieval-query mode.
 3. The query vector is normalized.
-4. Pinecone is queried for nearest matches.
-5. Retrieved metadata is converted into context blocks.
-6. Gemini generation produces the final answer.
-7. The UI renders the answer plus evidence cards and media previews.
+4. Pinecone is queried for nearest matches across modality namespaces.
+5. In `all` mode, the backend keeps a balanced cross-namespace candidate set so one modality does not crowd out the others.
+6. In `all` mode, the candidate set is reranked with a lightweight heuristic that combines vector score, lexical overlap with the user question, and a small non-text boost.
+7. Retrieved metadata is converted into context blocks.
+8. Gemini generation produces the final answer.
+9. The UI renders the answer plus evidence cards and media previews.
+
+## Why all-mode retrieval changed
+
+The original `all` mode could fail in two ways:
+
+- one modality, especially text, could dominate the final top-k list
+- generic documents such as `README.md` could rank above a more relevant image or video result for questions that were clearly about uploaded media
+
+The current flow addresses that by:
+
+- merging top candidates from each namespace first
+- reranking the merged candidates using lexical overlap with the question
+- applying a small bias toward non-text media in mixed-modality mode when scores are otherwise close
+
+This is still a heuristic reranker, not a full second-stage model-based reranker, but it improves practical relevance for `all` mode substantially.
 
 ## Why vectors are normalized
 
@@ -280,6 +299,7 @@ Gemini's docs note that smaller dimensions such as `1536` are not normalized by 
 - Pinecone index lifecycle is not managed by the app.
 - There is no auth or access control.
 - There is no retry queue for long-running or failed jobs.
+- All-mode ranking currently uses heuristic reranking, not a dedicated reranker model.
 
 ## Recommended next improvements
 

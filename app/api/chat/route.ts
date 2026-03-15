@@ -14,6 +14,7 @@ export async function POST(request: Request) {
 
     const vector = await embedTextForQuery(question);
     const matches = await queryIndex({
+      question,
       vector,
       topK: topK ?? 5,
       sourceType: sourceType && sourceType !== "all" ? sourceType : undefined,

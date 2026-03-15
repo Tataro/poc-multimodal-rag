@@ -34,6 +34,14 @@ yarn-error.log*
 .env*
 !.env.example
 
+# generated uploaded assets
+public/uploads/images/*
+public/uploads/posters/*
+public/uploads/video/*
+!public/uploads/images/.gitkeep
+!public/uploads/posters/.gitkeep
+!public/uploads/video/.gitkeep
+
 # vercel
 .vercel
 
